@@ -28,7 +28,7 @@ grid-template-areas:
 header {
   grid-area: hd;
   height:105px;
-  background-image: url("images/banner.JPG");
+  background-image: url("banner.JPG");
   background-size: cover;
   background-position: center 42%;
   background-repeat: no-repeat;
