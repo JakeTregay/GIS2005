@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<HTML>
+  <HEAD>
+    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="https://js.arcgis.com/5.1/esri/themes/light/main.css" />
+    <script type="module" src="https://js.arcgis.com/5.1/"></script>
+  </HEAD>
+
+  <BODY>
+    <div class="container">
+      <header></header>
+
+      <aside class="sidebar-l">
+        Layer Visibility
+        <div class="sidebar-l-top">
+          <arcgis-layer-list reference-element="myMap"></arcgis-layer-list>
+        </div>
+        Legend
+        <div class="sidebar-l-bottom">
+          <arcgis-legend reference-element="myMap"></arcgis-legend>
+        </div>
+      </aside>
+
+      <main>
+        <arcgis-map 
+          item-id="13be12ec46f84640bdc7f32d1287b869" 
+          center="-104.95, 39.75" 
+          zoom="14" 
+          id="myMap" 
+          popup-disabled>
+          
+          <arcgis-popup slot="popup"></arcgis-popup>
+          <arcgis-zoom slot="top-left"></arcgis-zoom>
+        </arcgis-map>
+      </main>
+
+      <script type="module">
+        const [FeatureLayer, GraphicsLayer, geometryEngine] = await $arcgis.import([
+        "@arcgis/core/layers/FeatureLayer.js",
+        "@arcgis/core/layers/GraphicsLayer.js",
+        "@arcgis/core/geometry/geometryEngine.js"
+        ]);
+
+
+        const featureLayer = new FeatureLayer({
+          portalItem: { id: "827a7cb1160c47e5b090b9699b2f5691" },
+          outFields: ["*"],
+          visible: false
+        });
+
+        const viewElement = document.querySelector("arcgis-map");
+        await viewElement.viewOnReady();
+        const map = viewElement.map;
+        const view = viewElement.view;
+
+        map.add(featureLayer);
+
+        const popupComponent = document.querySelector("arcgis-popup");
+        if (popupComponent.whenDefined) {
+          await popupComponent.whenDefined();
+        }
+
+        viewElement.addEventListener("arcgisViewClick", async (event) => {
+          const { mapPoint } = event.detail;
+
+          const query = featureLayer.createQuery();
+          query.geometry = view.extent.clone();
+          query.spatialRelationship = "intersects";
+          query.returnGeometry = true;   // required for nearest store
+          query.outFields = ["name"];
+
+          try {
+            const results = await featureLayer.queryFeatures(query);
+
+            // nearest store variables
+            let minDist = Infinity;
+            let nearest = null;
+
+            // build list
+            let namesList = "";
+            results.features.forEach((f) => {
+              namesList += `<li>${f.attributes.name}</li>`;
+
+              // nearest store calculation
+              const dist = geometryEngine.distance(mapPoint, f.geometry, "meters");
+              if (dist < minDist) {
+                minDist = dist;
+                nearest = f;
+              }
+            });
+
+            if (!namesList) {
+              namesList = "<li>No stores found in current view.</li>";
+            }
+
+            // popup content
+            let content = `
+              <style>
+                ul { padding-left: 20px; }
+                h3 { margin-bottom: 6px; }
+              </style>
+
+              <h3>Stores in View</h3>
+              <ul>${namesList}</ul>
+            `;
+
+            // nearest store section
+            if (nearest) {
+              content += `
+                <h3>Nearest Store</h3>
+                <p><strong>${nearest.attributes.name}</strong></p>
+                <p>${minDist.toFixed(2)} meters away</p>
+              `;
+            }
+
+            // open popup
+            popupComponent.location = mapPoint;
+            popupComponent.heading = "Grocery Store Info";
+            popupComponent.content = content;
+            popupComponent.open = true;
+
+          } catch (err) {
+            console.error("Query failed:", err);
+          }
+        });
+      </script>
+
+      <footer>
+        <span class="lblPreview">
+          Grocery icon from www.flaticon.com licensed by CC 3.0
+        </span>
+      </footer>
+    </div>
+  </BODY>
+</HTML>
