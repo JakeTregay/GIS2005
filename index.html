@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<HTML>
+  <HEAD>
+    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="https://js.arcgis.com/5.1/esri/themes/light/main.css" />
+    <script type="module" src="https://js.arcgis.com/5.1/"></script>
+  </HEAD>
+
+  <BODY>
+    <div class="container">
+      <header>
+        <h1>Colorado Hunting Maps</h1>
+      </header>
+
+  <aside class="sidebar-l">
+  <h3>Layer Controls</h3>
+
+  <div class="sidebar-l-top">
+    <arcgis-layer-list reference-element="myMap"></arcgis-layer-list>
+  </div>
+
+  <div class="feature-info">
+    <h3>Selected Feature</h3>
+    <div id="featureInfo">
+      Click a feature on the map to view information.
+    </div>
+    <button id="bufferBtn">Create 5-Mile Hunting Radius</button>
+  </div>
+
+</aside>
+
+
+    <main>
+  <arcgis-map 
+    item-id="81248e4e369a41f08147b28a9a652c9f" 
+    center="-105.55, 39.0" 
+    zoom="8" 
+    id="myMap" 
+    popup-disabled>
+    
+    <arcgis-search slot="top-center"></arcgis-search>
+     <arcgis-expand slot="top-left" expand-tooltip="Legend" expanded>
+     <arcgis-legend></arcgis-legend>
+     </arcgis-expand>
+
+    <arcgis-zoom slot="top-right" layout="horizontal"></arcgis-zoom>
+
+    <arcgis-expand slot="top-right" expand-tooltip="Measure Distance" style="margin-top: 25px;">
+    <arcgis-distance-measurement-2d unit="miles"></arcgis-distance-measurement-2d>
+
+
+
+    </arcgis-expand>
+
+    <arcgis-popup slot="popup"></arcgis-popup>
+  </arcgis-map>
+</main>
+
+    <script type="module">
+
+const [GraphicsLayer, geometryEngine] = await $arcgis.import([
+  "@arcgis/core/layers/GraphicsLayer.js",
+  "@arcgis/core/geometry/geometryEngine.js"
+]);
+
+const [Graphic] = await $arcgis.import([
+  "@arcgis/core/Graphic.js"
+]);
+
+const viewElement = document.querySelector("arcgis-map");
+await viewElement.viewOnReady();
+
+const map = viewElement.map;
+const view = viewElement.view;
+
+const bufferLayer = new GraphicsLayer({
+  title: "5-Mile Hunting Radius"
+});
+
+map.add(bufferLayer);
+let bufferMode = false;
+
+document.getElementById("bufferBtn").addEventListener("click", () => {
+
+  bufferMode = true;
+
+  document.getElementById("featureInfo").innerHTML =
+    "Click a location on the map to create a 5-mile hunting radius.";
+
+});
+
+viewElement.addEventListener("arcgisViewClick", async (event) => {
+
+  if (bufferMode) {
+
+    bufferMode = false;
+
+    const point = event.detail.mapPoint;
+
+    bufferLayer.removeAll();
+
+    const buffer = geometryEngine.geodesicBuffer(
+      point,
+      5,
+      "miles"
+    );
+
+    const bufferGraphic = new Graphic({
+      geometry: buffer,
+      symbol: {
+        type: "simple-fill",
+        color: [255, 0, 0, 0.15],
+        outline: {
+          color: [255, 0, 0],
+          width: 2
+        }
+      }
+    });
+
+    bufferLayer.add(bufferGraphic);
+
+    document.getElementById("featureInfo").innerHTML =
+      "5-mile hunting radius created.";
+
+    return;
+  }
+
+  const response = await view.hitTest(event.detail);
+
+  if (response.results.length > 0) {
+
+    const graphic = response.results[0].graphic;
+    const attrs = graphic.attributes;
+    const layerName = graphic.layer?.title || "Unknown Layer";
+
+    if (layerName === "Colorado GMU Boundries") {
+
+      document.getElementById("featureInfo").innerHTML = `
+        <h4>Game Management Unit</h4>
+        <p><strong>GMU:</strong> ${attrs.GMUID}</p>
+      `;
+
+    } else if (layerName === "Colorado Lands Ownership Map") {
+
+      document.getElementById("featureInfo").innerHTML = `
+        <h4>Land Ownership</h4>
+        <p><strong>Agency:</strong> ${attrs.Agency_Gro}</p>
+      `;
+
+    } else {
+
+     document.getElementById("featureInfo").innerHTML =
+    "Select a Game Management Unit or Land Ownership Area to view hunting information.";
+    }
+  }
+});
+
+</script>
+
+      <footer>
+        <span class="lblPreview">
+         Banner Image By Jake Tregay
+        </span>
+      </footer>
+    </div>
+  </BODY>
+</HTML>
