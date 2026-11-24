@@ -39,7 +39,7 @@ header {
   grid-area: hd;
   height: 100%;
   background-color: #1b5e20;
-  background-image: url("banner.jpg");
+  background-image: url("Banner.JPG");
   background-size: cover;
   background-position: center 15%;
   background-repeat: no-repeat;
@@ -49,10 +49,10 @@ header {
   padding: 0 20px;
 }
 header h1 {
-  color: #f4f1e8; /* Matches your warm cream background */
+  color: #f4f1e8; 
   font-size: 2rem;
   text-align: center;
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8); /* Keeps text readable over light spots in the photo */
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8); 
   letter-spacing: 1px;
 }
 
